@@ -97,13 +97,34 @@ has less room to verify. The 3-round dose turned out **not to bind** (the analys
 batches its calls into ≤3 rounds), so the same variable was extended to 1 round,
 which does bind and produces the dose–response in the report.
 
-## 5. Files
+## 5. Making the decision reproducible (follow-up)
+
+R1–R3 established that the rating moves. `REPORT.md` §6 measures four levers:
+
+```bash
+./.venv/bin/python probe_single_call.py     # single call: raw evidence vs report
+./.venv/bin/python probe_frozen.py          # frozen evidence, 10 calls
+./.venv/bin/python probe_models.py          # flash vs v4-pro on frozen evidence
+./.venv/bin/python map_report_to_rating.py  # replay all reports as decisions
+./.venv/bin/python analyze_voting.py        # bootstrap: does voting converge?
+./.venv/bin/python deterministic_rating.py --ticker AAPL --date 2026-09-02
+```
+
+Summary of what each buys: pinning `seed` — nothing (measured); voting — nothing
+when the distribution is bimodal (0.46 → 0.51 from k=1 to k=31); frozen evidence
+plus one call — 0.95; a fixed rule — 1.00.
+
+## 6. Files
 
 | file | role |
 |---|---|
 | `run_experiment.py` | isolated driver; sets all knobs, instruments tool calls, writes per-run JSON + report text |
 | `analyze_grounding.py` | independent audit: recomputes OHLCV from yfinance and indicators with stockstats, then checks every attributable claim |
 | `collect_results.py` | joins run metrics with grounding audits, emits `results.csv` / `results.md` |
+| `map_report_to_rating.py` | replays each report as a single-call decision: separates report variance from mapping variance |
+| `analyze_voting.py` | bootstraps majority/median voting over the observed rating distribution |
+| `deterministic_rating.py` | the fixed score rule; same inputs, same rating, no LLM |
+| `probe_single_call.py`, `probe_frozen.py`, `probe_models.py` | the reproducibility probes behind §6 (seed, frozen evidence, model strength) |
 | `runs/main/` | raw evidence for the six cells |
 | `REPORT.md` | the submitted write-up |
 

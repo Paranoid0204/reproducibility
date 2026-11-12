@@ -139,7 +139,7 @@ def main() -> int:
             # survive conversion consistently, so the indent is set explicitly
             par = doc.add_paragraph()
             par.paragraph_format.left_indent = Inches(0.32)
-            par.paragraph_format.first_line_indent = Inches(-0.18)
+            par.paragraph_format.first_line_indent = Inches(0)
             par.paragraph_format.space_before = Pt(0)
             par.paragraph_format.space_after = Pt(3)
             par.add_run("\u2022  ")
@@ -150,7 +150,7 @@ def main() -> int:
         if re.match(r"^\d+\. ", stripped):
             par = doc.add_paragraph()
             par.paragraph_format.left_indent = Inches(0.32)
-            par.paragraph_format.first_line_indent = Inches(-0.18)
+            par.paragraph_format.first_line_indent = Inches(0)
             par.paragraph_format.space_before = Pt(0)
             par.paragraph_format.space_after = Pt(3)
             num = re.match(r"^(\d+\.)\s*", stripped).group(1)

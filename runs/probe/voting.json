@@ -1,0 +1,66 @@
+{
+  "n": 9,
+  "distribution": {
+    "Overweight": 4,
+    "Hold": 4,
+    "Underweight": 1
+  },
+  "rows": [
+    {
+      "k": 1,
+      "plurality_stable": 0.46,
+      "median_stable": 0.46,
+      "plurality_modal": "Overweight",
+      "median_modal": "Overweight"
+    },
+    {
+      "k": 3,
+      "plurality_stable": 0.469,
+      "median_stable": 0.541,
+      "plurality_modal": "Overweight",
+      "median_modal": "Hold"
+    },
+    {
+      "k": 5,
+      "plurality_stable": 0.485,
+      "median_stable": 0.602,
+      "plurality_modal": "Hold",
+      "median_modal": "Hold"
+    },
+    {
+      "k": 7,
+      "plurality_stable": 0.521,
+      "median_stable": 0.579,
+      "plurality_modal": "Overweight",
+      "median_modal": "Hold"
+    },
+    {
+      "k": 9,
+      "plurality_stable": 0.503,
+      "median_stable": 0.653,
+      "plurality_modal": "Hold",
+      "median_modal": "Hold"
+    },
+    {
+      "k": 15,
+      "plurality_stable": 0.499,
+      "median_stable": 0.678,
+      "plurality_modal": "Hold",
+      "median_modal": "Hold"
+    },
+    {
+      "k": 21,
+      "plurality_stable": 0.51,
+      "median_stable": 0.702,
+      "plurality_modal": "Hold",
+      "median_modal": "Hold"
+    },
+    {
+      "k": 31,
+      "plurality_stable": 0.502,
+      "median_stable": 0.731,
+      "plurality_modal": "Overweight",
+      "median_modal": "Hold"
+    }
+  ]
+}

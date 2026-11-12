@@ -1,0 +1,40 @@
+{
+  "frozen, no rubric": {
+    "ratings": [
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "UNPARSED",
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight"
+    ],
+    "counts": {
+      "Overweight": 9,
+      "UNPARSED": 1
+    },
+    "modal_share": 0.9
+  },
+  "frozen, rubric": {
+    "ratings": [
+      "Overweight",
+      "UNPARSED",
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight"
+    ],
+    "counts": {
+      "Overweight": 9,
+      "UNPARSED": 1
+    },
+    "modal_share": 0.9
+  }
+}

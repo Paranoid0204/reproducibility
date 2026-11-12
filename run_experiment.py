@@ -51,6 +51,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--analysts", default="market")
     p.add_argument("--condition", default="baseline",
                    choices=["baseline", "low_tool_budget", "one_round"])
+    p.add_argument("--model", default=None,
+                   help="override both model tiers (e.g. deepseek-v4-pro)")
     p.add_argument("--rep", type=int, default=1)
     p.add_argument("--tag", default="main")
     return p.parse_args()
@@ -106,6 +108,9 @@ def main() -> int:
         config["max_tool_rounds"] = 3
     elif args.condition == "one_round":
         config["max_tool_rounds"] = 1
+    if args.model:
+        config["deep_think_llm"] = args.model
+        config["quick_think_llm"] = args.model
 
     bytes_before = memory_path.stat().st_size if memory_path.exists() else 0
     analysts = [a.strip() for a in args.analysts.split(",") if a.strip()]

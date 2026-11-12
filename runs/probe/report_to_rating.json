@@ -1,0 +1,140 @@
+[
+  {
+    "report": "AAPL_2026-09-01_baseline_r1.report.md",
+    "pipeline_rating": "Overweight",
+    "replayed_ratings": [
+      "Overweight",
+      "Hold",
+      "Overweight"
+    ],
+    "counts": {
+      "Overweight": 2,
+      "Hold": 1
+    },
+    "modal": "Overweight",
+    "agreement": 0.6666666666666666,
+    "matches_pipeline": true
+  },
+  {
+    "report": "AAPL_2026-09-01_baseline_r2.report.md",
+    "pipeline_rating": "Overweight",
+    "replayed_ratings": [
+      "Overweight",
+      "Overweight",
+      "Overweight"
+    ],
+    "counts": {
+      "Overweight": 3
+    },
+    "modal": "Overweight",
+    "agreement": 1.0,
+    "matches_pipeline": true
+  },
+  {
+    "report": "AAPL_2026-09-01_baseline_r3.report.md",
+    "pipeline_rating": "Hold",
+    "replayed_ratings": [
+      "Overweight",
+      "Overweight",
+      "Buy"
+    ],
+    "counts": {
+      "Overweight": 2,
+      "Buy": 1
+    },
+    "modal": "Overweight",
+    "agreement": 0.6666666666666666,
+    "matches_pipeline": false
+  },
+  {
+    "report": "AAPL_2026-09-01_low_tool_budget_r1.report.md",
+    "pipeline_rating": "Overweight",
+    "replayed_ratings": [
+      "Buy",
+      "Overweight",
+      "Buy"
+    ],
+    "counts": {
+      "Buy": 2,
+      "Overweight": 1
+    },
+    "modal": "Buy",
+    "agreement": 0.6666666666666666,
+    "matches_pipeline": false
+  },
+  {
+    "report": "AAPL_2026-09-01_low_tool_budget_r2.report.md",
+    "pipeline_rating": "Overweight",
+    "replayed_ratings": [
+      "Overweight",
+      "Overweight",
+      "Overweight"
+    ],
+    "counts": {
+      "Overweight": 3
+    },
+    "modal": "Overweight",
+    "agreement": 1.0,
+    "matches_pipeline": true
+  },
+  {
+    "report": "AAPL_2026-09-01_low_tool_budget_r3.report.md",
+    "pipeline_rating": "Underweight",
+    "replayed_ratings": [
+      "Overweight",
+      "Overweight",
+      "Overweight"
+    ],
+    "counts": {
+      "Overweight": 3
+    },
+    "modal": "Overweight",
+    "agreement": 1.0,
+    "matches_pipeline": false
+  },
+  {
+    "report": "AAPL_2026-09-01_one_round_r1.report.md",
+    "pipeline_rating": "Hold",
+    "replayed_ratings": [
+      "Overweight",
+      "Overweight",
+      "Overweight"
+    ],
+    "counts": {
+      "Overweight": 3
+    },
+    "modal": "Overweight",
+    "agreement": 1.0,
+    "matches_pipeline": false
+  },
+  {
+    "report": "AAPL_2026-09-01_one_round_r2.report.md",
+    "pipeline_rating": "Hold",
+    "replayed_ratings": [
+      "Overweight",
+      "Overweight",
+      "Overweight"
+    ],
+    "counts": {
+      "Overweight": 3
+    },
+    "modal": "Overweight",
+    "agreement": 1.0,
+    "matches_pipeline": false
+  },
+  {
+    "report": "AAPL_2026-09-01_one_round_r3.report.md",
+    "pipeline_rating": "Hold",
+    "replayed_ratings": [
+      "Overweight",
+      "Overweight",
+      "Overweight"
+    ],
+    "counts": {
+      "Overweight": 3
+    },
+    "modal": "Overweight",
+    "agreement": 1.0,
+    "matches_pipeline": false
+  }
+]

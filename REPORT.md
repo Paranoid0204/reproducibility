@@ -6,7 +6,7 @@
 | Commit reproduced | `9fa1196` (2026-11-04) |
 | Ticker / analysis date | `AAPL` / `2026-09-01`; spot-check `NVDA` / `2026-09-01` |
 | Model | `deepseek-flash` for both tiers, temperature 0.0 |
-| Runs | 9 (3 conditions × 3 repetitions) + 2 robustness runs |
+| Runs | 9 (3 conditions × 3 repetitions) + 2 robustness + 6 extra baseline runs, plus single-call probes |
 
 ---
 
@@ -43,6 +43,11 @@ repeated runs with every knob pinned, temperature 0 included.
 **R3 (secondary).** The assignment's suggested "cost per task / tool-call
 reliability" targets. *Metric:* LLM calls, tool calls by name, input and output
 tokens, wall-clock latency.
+
+**R4 (follow-up).** Once R2 showed the rating moving, the obvious question is
+whether it can be made to stop. *Metric:* the stability of the decision under
+each available lever — pinned sampling, frozen evidence, majority voting, and a
+deterministic rule — measured on the same ticker and date (§6).
 
 ## 2. Setup notes
 
@@ -102,7 +107,7 @@ It then extracts only claims whose attribution is unambiguous, in three classes:
 Bare numbers in prose, percentage moves, point differences, indicator values
 dated to *other* sessions, and sentences whose subject is ambiguous ("the prior
 close") are excluded. Counting them would manufacture false errors — and an
-earlier version of this auditor did exactly that (§6.4, §6.7).
+earlier version of this auditor did exactly that (§7.4, §7.7).
 
 ### 3.2 Decision and cost
 
@@ -162,7 +167,7 @@ it is one sample from a distribution.
 
 The practical implication for a FinTech user is uncomfortable: the UI presents one
 rating with a confident executive summary, and the same inputs can land on either
-side of "hold".
+side of "hold". Whether that can be fixed is the subject of §6.
 
 This is not an artifact of the model swap in the trivial sense; it is the
 documented consequence of a sampling API. `deepseek-flash` is a thinking model and
@@ -226,12 +231,114 @@ report, but it changed what the system concluded. A cost optimisation that looks
 free on an accuracy metric is not free on the output the user reads — which is
 exactly the kind of claim a reproducibility study exists to surface.
 
-## 6. Debug diary
+## 6. Can the decision be made reproducible?
 
-Eight blockers, in the order they appeared. This section is the part a reader
+Section 4.2 leaves the practical question open: the rating moved, but can it be
+made not to? Four levers were tested on the same ticker and date, cheapest first.
+
+### 6.1 Lever 1 — pin the sampler (does not work)
+
+Five identical requests to the endpoint, `temperature=0` and `seed=42`:
+
+```
+3 distinct completions out of 5   ({"signal":"buy","confidence":70} / 72 / 75)
+```
+
+`seed` is accepted without error but does not pin sampling, and `temperature` is
+largely ignored by a thinking model. **API-level determinism is unavailable for
+this provider and model**, so no downstream design can rely on it. A second
+run with `seed=7` gave 2 distinct completions out of 5 — the same conclusion.
+
+### 6.2 Lever 2 — freeze the evidence and decide once (about 95 %)
+
+Take one report the pipeline produced and ask for the rating repeatedly. Across
+40 probes (three prompt variants, two rubrics, one model) the answer was
+`Overweight` 38 times and unparsable twice — **0.95**, stable enough to act on and
+still not deterministic.
+
+A stronger model does not fix this. On the same frozen report `deepseek-v4-pro`
+returned `Buy` 8 times out of 10 with 2 unparsable answers: less consistent than
+`deepseek-flash`, and it actually recommends a different tier, which is a warning
+about reading any single model's output as "the" analysis.
+
+The more informative measurement is where the variance is *created*. Replaying
+each of the nine reports three times gives a **within-report agreement of 0.89**
+and a **modal mapping of Overweight for 8 of 9 reports** — yet only **33 %** of
+the pipeline's own ratings equal the mapping of its own report. The analyst
+report is therefore not the bottleneck: the researcher debate, the risk debate
+and the Portfolio Manager all read the same report and still land in different
+tiers. The variance is created downstream of the evidence.
+
+### 6.3 Lever 3 — vote (helps much less than expected)
+
+If the distribution were unimodal, a majority vote would converge quickly. It is
+not. Resampling the nine baseline ratings (Overweight 4, Hold 4, Underweight 1):
+
+| votes k | plurality stable | median-tier stable | cost |
+|---|---|---|---|
+| 1 | 0.46 | 0.46 | ≈ ¥0.5 |
+| 5 | 0.49 | 0.60 | ≈ ¥2.5 |
+| 9 | 0.50 | 0.65 | ≈ ¥4.5 |
+| 21 | 0.51 | 0.70 | ≈ ¥10.5 |
+| 31 | 0.50 | 0.73 | ≈ ¥15.5 |
+
+This is the sharpest negative result in the study. Because Overweight and Hold
+are almost tied, a plurality vote is a coin flip *at every k* — 0.46 at one run,
+0.51 at twenty-one — so voting does not converge, it just launders the same
+uncertainty through more spend. The median-tier aggregator is better behaved
+(0.65 at k=9) because it sits between the two modes, but it still never becomes a
+decision procedure. An earlier resample at n=7 (Overweight 4, Hold 2, Underweight
+1) looked much better — 0.72 at k=5 — which is itself the lesson: **with a
+distribution this flat, a voting study needs far more than nine samples to say
+anything**, and a practitioner who tested on a lucky day would draw the wrong
+conclusion.
+
+### 6.4 Lever 4 — take the decision out of the sampler (100 %)
+
+`deterministic_rating.py` computes the rating from a fixed score over the same
+indicator snapshot, with the rule written down before any rating was looked at:
+for AAPL on 2026-09-01 it scores 3 (trend stack intact, MACD above signal with a
+rising histogram, RSI 61 in the 50–70 band, volume 1.29× the 20-day average,
+minus one point for closing above the upper Bollinger band and one for sitting
+15.0 % above the 200 SMA) → **Buy**. Same inputs, same rating, every time.
+
+It is 100 % reproducible **because it is no longer the agent's decision**. That
+trade-off is the whole finding:
+
+| approach | stability | cost per decision | is it the agents' answer? |
+|---|---|---|---|
+| one run | 0.44 | 1 run (≈ ¥0.5) | yes |
+| vote over 5 runs | 0.49 | 5 runs (≈ ¥2.5) | yes |
+| frozen evidence, one call | 0.95 | ≈ 1/20 of a run | partly — analyst yes, debate no |
+| deterministic rule | 1.00 | ≈ 0 | no |
+
+### 6.5 Recommendation
+
+The levers rank by stability per yuan, and only one of them is cheap:
+
+1. **Do not vote.** It is the intuitive fix and it fails here, because the
+   distribution is bimodal. Voting only converges when one tier already
+   dominates; test that before paying for it.
+2. **Freeze the evidence, then decide once.** Generate the report, hash it, and
+   make a single decision call against the fixed text: 0.95 stability for about
+   1/20 of a pipeline run. A 3-call majority over that frozen text is ≈0.99 by
+   binomial arithmetic (`1 - 3p(1-p)² - (1-p)³` at p = 0.95), which is the
+   cheapest near-determinism available.
+3. **Use the rule when reproducibility is contractual.** A fixed score over the
+   snapshot is 1.00 by construction, costs nothing, and can be audited line by
+   line. Keep the agents for what they are measurably good at — producing a
+   grounded, readable case (§4.1) — not for producing the same conclusion twice.
+4. **Never claim `temperature` or `seed` pins this API.** It does not, and that
+   is the single most transferable negative result of this study.
+
+For analysis, report the distribution and never a single rating.
+
+## 7. Debug diary
+
+Nine blockers, in the order they appeared. This section is the part a reader
 cannot get from the repository's README.
 
-### 6.1 The default data home is not writable (and would leak state anyway)
+### 7.1 The default data home is not writable (and would leak state anyway)
 
 First launch died immediately:
 
@@ -245,7 +352,7 @@ Two fixes were needed at once: redirect `TRADINGAGENTS_RESULTS_DIR`,
 directory, and isolate the memory log per run so repetitions are comparable. The
 second matters for the experiment: without it run 2 would read run 1's decision.
 
-### 6.2 The default models are not callable from this account
+### 7.2 The default models are not callable from this account
 
 Upstream defaults to `gpt-6-sol` / `gpt-6-luna`. Probing `/v1/models` on the
 DeepSeek endpoint returned only `deepseek-flash` and `deepseek-v4-pro`. Both tiers
@@ -267,7 +374,7 @@ in 7 of 9 runs. It is a **handled** degradation — the framework retries as fre
 text and the rating still parses — but it costs one extra call per occurrence and
 is a direct consequence of the model swap, so it belongs in the record.
 
-### 6.3 The framework's own stat handler under-reports tool calls
+### 7.3 The framework's own stat handler under-reports tool calls
 
 `cli/stats_handler.py` counts `on_tool_start`, but the graph does not pass its
 callbacks into the tool nodes, so `tool_calls` read **0** on a run that had clearly
@@ -278,7 +385,7 @@ Rather than edit upstream source (which would contaminate the baseline), the
 driver wraps `StructuredTool.func` for the market tools and counts invocations
 outside the framework, after verifying the wrapper against a direct invoke.
 
-### 6.4 The first ground-truth auditor was wrong, not the agent
+### 7.4 The first ground-truth auditor was wrong, not the agent
 
 The initial auditor reported "grounding accuracy 21 %" with 75 unsupported
 numbers. Every failure was an artifact:
@@ -293,7 +400,7 @@ Fixes: require a contiguous snapshot row, ignore table rows and numbers preceded
 by an indicator name, drop ambiguous "prior close" sentences from the headline
 metric, and extend the history window to two years.
 
-### 6.5 Silent runs: output buffering made a five-minute run look hung
+### 7.5 Silent runs: output buffering made a five-minute run look hung
 
 Piping the driver through `tail`/`grep` in a background shell swallowed every line
 until process exit; two healthy runs were killed as "hung". Fixed by writing
@@ -301,7 +408,7 @@ unbuffered (`python -u`) logs to per-run files plus a heartbeat on every LLM
 completion (`[llm] calls=… in=… out=… tools=… t=…s`). Cost of this mistake:
 about 25 minutes and one wasted run.
 
-### 6.6 The tool budget was not a cost lever — the first modification failed
+### 7.6 The tool budget was not a cost lever — the first modification failed
 
 The planned modification (`max_tool_rounds` 12 → 3) produced **no effect at all**:
 identical tool counts, identical tokens, no `wrap_up` warning. The hypothesis
@@ -310,7 +417,7 @@ response was to keep the same variable and extend it to a level that binds (1),
 turning a failed experiment into a dose–response curve. Recording this matters:
 as pre-registered, the modification would have been reported as a null result.
 
-### 6.7 The auditor was wrong a second, third and fourth time
+### 7.7 The auditor was wrong a second, third and fourth time
 
 After the model fix, one run still showed 0.958 grounding. Both remaining
 mismatches were again the auditor:
@@ -329,15 +436,23 @@ the label, and skip any parenthetical naming more than one date. After that,
 131/131 claims match. **Four of this study's eight blockers were bugs in the
 measuring instrument** — which is itself the main methodological lesson.
 
-### 6.8 Budget arithmetic
+### 7.8 A full run of the stronger model was abandoned, not silently dropped
+
+`deepseek-v4-pro` was meant to be compared as a full pipeline arm. At roughly
+3.5 minutes per LLM call it needs over half an hour per run, against 5 minutes
+for `deepseek-flash`, and one partial run was killed before it produced a
+rating. The model comparison therefore stands on the frozen-evidence probe only
+(§6.2), and this is recorded rather than quietly omitted.
+
+### 7.9 Budget arithmetic
 
 The account held ¥7.28 at the start; a market-only run costs ≈ ¥0.5, so the first
 design (n=6) hit the floor at ¥1.88 and had to be topped up before the third
 condition could run. The design was shaped by that constraint at every step: one
 analyst instead of four, three levels of one variable instead of several
-variables, and a written record of what was cut (§8).
+variables, and a written record of what was cut (§9).
 
-## 7. Conclusions
+## 8. Conclusions
 
 **What reproduces.**
 
@@ -360,6 +475,17 @@ variables, and a written record of what was cut (§8).
    not reduce cost proportionally until the cap binds, and the default cap never
    binds. The lever is the *number of distinct tools the agent decides to call*,
    not the cap the framework imposes.
+3. **Decision reproducibility, as an achievable target.** It is not reachable by
+   pinning sampling (`seed` is accepted and ignored), nor by majority voting over
+   the pipeline when the rating distribution is bimodal (plurality stability
+   0.46 → 0.51 from k=1 to k=31). It *is* reachable, at 0.95, by freezing the
+   evidence and deciding once; and at 1.00 by replacing the sampled decision with
+   a fixed rule (§6).
+
+**What can be made reproducible.** The decision — but only by moving it out of
+the sampler. Frozen evidence plus one call gives 0.95; a fixed rule gives 1.00;
+everything that keeps the multi-stage debate in the loop stays near 0.45–0.50 no
+matter how much is spent on voting.
 
 **What the modification teaches.** The eight redundant `get_indicators` calls are
 free insurance *for accuracy* (grounding is identical without them) and not free
@@ -378,7 +504,7 @@ conservative, without noticing.
 4. Budget ≈ ¥0.5 and ≈ 5 minutes per market-only analysis, and multiply by the
    analyst roster before planning a sweep.
 
-## 8. Limitations
+## 9. Limitations
 
 - **One ticker, one date, one model, n=3 per condition.** The grounding result is
   a property of the tools and was spot-checked on a second ticker, but the rating
@@ -389,5 +515,13 @@ conservative, without noticing.
   GPT-6-based runs; only framework behaviour is.
 - **Claims audited vary per run** (8–20), because report layout varies; the metric
   is accuracy over attributable claims, not a fixed checklist.
-- **The auditor is mine.** It was wrong three times before it was right, and its
+- **The auditor is mine.** It was wrong four times before it was right, and its
   thresholds are documented rather than hidden.
+- **The reproducibility probes are thin where it matters most.** The voting
+  analysis is a bootstrap over nine ratings, so its levels are indicative; the
+  swing between the n=7 and n=9 resamples (0.72 vs 0.49 at k=5) shows how much
+  sampling error there is at this size. The qualitative claim — voting does not
+  converge on a flat distribution — is robust to that, the exact numbers are not.
+- **"Frozen evidence" freezes one stage, not the world.** The report text is
+  fixed, but the live data sources behind a fresh run are not; a production
+  system would need to pin those too, or the evidence stage reintroduces drift.

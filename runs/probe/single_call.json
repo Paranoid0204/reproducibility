@@ -1,0 +1,42 @@
+[
+  {
+    "arm": "A raw evidence table",
+    "ratings": [
+      "Buy",
+      "Overweight",
+      "Buy",
+      "Overweight",
+      "Overweight"
+    ],
+    "counts": {
+      "Buy": 2,
+      "Overweight": 3
+    }
+  },
+  {
+    "arm": "B analyst report",
+    "ratings": [
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight"
+    ],
+    "counts": {
+      "Overweight": 5
+    }
+  },
+  {
+    "arm": "C report + rubric",
+    "ratings": [
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight",
+      "Overweight"
+    ],
+    "counts": {
+      "Overweight": 5
+    }
+  }
+]
