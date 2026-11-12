@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+logs/
+runs/*/cache/
+runs/*/results/
+runs/*/memory/
+runs/*/memory_off/
+runs/*/*.log
