@@ -93,6 +93,25 @@ def main() -> int:
     memory_path.parent.mkdir(parents=True, exist_ok=True)
     os.environ["TRADINGAGENTS_MEMORY_LOG_PATH"] = str(memory_path)
 
+    # yfinance 1.8 keeps its timezone/cookie lookups in SQLite. Two processes
+    # sharing the default cache raise "OperationalError: database is locked",
+    # which the framework reports as a dead vendor and degrades around. Give
+    # each run its own tz cache and warm the connection once, serially.
+    import yfinance as yf
+    try:
+        tz_dir = out_dir / "yf_tz_cache"
+        tz_dir.mkdir(parents=True, exist_ok=True)
+        yf.set_tz_cache_location(str(tz_dir))
+    except Exception as exc:  # older yfinance, or a read-only home
+        print(f"[warmup] could not relocate yfinance cache: {exc}", file=sys.stderr)
+    for attempt in range(3):
+        try:
+            yf.Ticker(args.ticker).history(period="5d")
+            break
+        except Exception as exc:
+            print(f"[warmup] yfinance attempt {attempt + 1} failed: {exc}", file=sys.stderr)
+            time.sleep(2)
+
     import tradingagents  # noqa: F401  (loads .env)
     from cli.stats_handler import StatsCallbackHandler
     from tradingagents.default_config import DEFAULT_CONFIG
