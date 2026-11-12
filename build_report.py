@@ -135,17 +135,27 @@ def main() -> int:
             continue
 
         if re.match(r"^[-*] ", stripped):
-            par = doc.add_paragraph(style="List Bullet")
-            par.paragraph_format.left_indent = Inches(0.3)
-            par.paragraph_format.first_line_indent = Inches(-0.2)
+            # plain paragraph + manual hang: Word's List Bullet numbering does not
+            # survive conversion consistently, so the indent is set explicitly
+            par = doc.add_paragraph()
+            par.paragraph_format.left_indent = Inches(0.32)
+            par.paragraph_format.first_line_indent = Inches(-0.18)
+            par.paragraph_format.space_before = Pt(0)
             par.paragraph_format.space_after = Pt(3)
+            par.add_run("\u2022  ")
             add_runs(par, stripped[2:])
             i += 1
             continue
 
         if re.match(r"^\d+\. ", stripped):
-            par = doc.add_paragraph(style="List Number")
-            add_runs(par, re.sub(r"^\d+\. ", "", stripped))
+            par = doc.add_paragraph()
+            par.paragraph_format.left_indent = Inches(0.32)
+            par.paragraph_format.first_line_indent = Inches(-0.18)
+            par.paragraph_format.space_before = Pt(0)
+            par.paragraph_format.space_after = Pt(3)
+            num = re.match(r"^(\d+\.)\s*", stripped).group(1)
+            par.add_run(num + "  ")
+            add_runs(par, re.sub(r"^\d+\.\s*", "", stripped))
             i += 1
             continue
 
