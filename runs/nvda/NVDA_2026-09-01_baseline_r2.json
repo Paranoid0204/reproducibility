@@ -1,0 +1,33 @@
+{
+  "ticker": "NVDA",
+  "date": "2026-09-01",
+  "condition": "baseline",
+  "rep": 2,
+  "analysts": [
+    "market"
+  ],
+  "decision": "Hold",
+  "latency_s": 284.8,
+  "llm_calls": 12,
+  "tool_calls_total": 10,
+  "tool_calls_by_name": {
+    "get_stock_data": 1,
+    "get_verified_market_snapshot": 1,
+    "get_indicators": 8
+  },
+  "tokens_in": 100910,
+  "tokens_out": 50481,
+  "memory_log_bytes_before": 0,
+  "memory_log_bytes_after": 4308,
+  "config": {
+    "llm_provider": "deepseek",
+    "deep_think_llm": "deepseek-flash",
+    "quick_think_llm": "deepseek-flash",
+    "temperature": "0.0",
+    "max_debate_rounds": 1,
+    "max_risk_discuss_rounds": 1,
+    "max_tool_rounds": 12,
+    "max_tokens": "4096",
+    "output_language": "English"
+  }
+}

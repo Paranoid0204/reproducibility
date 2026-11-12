@@ -1,0 +1,27 @@
+{
+  "ticker": "AAPL",
+  "date": "2026-09-01",
+  "condition": "baseline",
+  "rep": 1,
+  "analysts": [
+    "market"
+  ],
+  "decision": "Underweight",
+  "latency_s": 302.1,
+  "llm_calls": 12,
+  "tool_calls": 0,
+  "tokens_in": 102964,
+  "tokens_out": 45505,
+  "config": {
+    "llm_provider": "deepseek",
+    "deep_think_llm": "deepseek-flash",
+    "quick_think_llm": "deepseek-flash",
+    "temperature": "0.0",
+    "max_debate_rounds": 1,
+    "max_risk_discuss_rounds": 1,
+    "max_tool_rounds": 12,
+    "max_tokens": "4096",
+    "memory_log_path": "/Users/lixinzi/Documents/deepseek-harness/default-workspace/repro/runs/smoke/memory/AAPL_2026-09-01.md",
+    "memory_log_bytes_before": 4559
+  }
+}

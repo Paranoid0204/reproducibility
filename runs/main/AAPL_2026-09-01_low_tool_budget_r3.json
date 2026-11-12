@@ -1,0 +1,33 @@
+{
+  "ticker": "AAPL",
+  "date": "2026-09-01",
+  "condition": "low_tool_budget",
+  "rep": 3,
+  "analysts": [
+    "market"
+  ],
+  "decision": "Underweight",
+  "latency_s": 323.5,
+  "llm_calls": 14,
+  "tool_calls_total": 9,
+  "tool_calls_by_name": {
+    "get_stock_data": 1,
+    "get_verified_market_snapshot": 1,
+    "get_indicators": 7
+  },
+  "tokens_in": 110632,
+  "tokens_out": 48537,
+  "memory_log_bytes_before": 0,
+  "memory_log_bytes_after": 3714,
+  "config": {
+    "llm_provider": "deepseek",
+    "deep_think_llm": "deepseek-flash",
+    "quick_think_llm": "deepseek-flash",
+    "temperature": "0.0",
+    "max_debate_rounds": 1,
+    "max_risk_discuss_rounds": 1,
+    "max_tool_rounds": 3,
+    "max_tokens": "4096",
+    "output_language": "English"
+  }
+}

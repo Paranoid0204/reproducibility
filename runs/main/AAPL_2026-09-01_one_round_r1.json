@@ -1,0 +1,32 @@
+{
+  "ticker": "AAPL",
+  "date": "2026-09-01",
+  "condition": "one_round",
+  "rep": 1,
+  "analysts": [
+    "market"
+  ],
+  "decision": "Hold",
+  "latency_s": 269.7,
+  "llm_calls": 11,
+  "tool_calls_total": 2,
+  "tool_calls_by_name": {
+    "get_stock_data": 1,
+    "get_verified_market_snapshot": 1
+  },
+  "tokens_in": 87818,
+  "tokens_out": 42667,
+  "memory_log_bytes_before": 0,
+  "memory_log_bytes_after": 4344,
+  "config": {
+    "llm_provider": "deepseek",
+    "deep_think_llm": "deepseek-flash",
+    "quick_think_llm": "deepseek-flash",
+    "temperature": "0.0",
+    "max_debate_rounds": 1,
+    "max_risk_discuss_rounds": 1,
+    "max_tool_rounds": 1,
+    "max_tokens": "4096",
+    "output_language": "English"
+  }
+}
