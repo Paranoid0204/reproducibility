@@ -54,6 +54,20 @@ contaminate run-to-run comparison — that subsystem is held fixed, not removed.
 
 ## 3. How to reproduce
 
+Everything is wrapped in `rerun.sh` (run it from this directory):
+
+```bash
+./rerun.sh one                     # one full analysis, ~5 min, ~¥0.5
+./rerun.sh full                    # the nine experiment cells, ~45 min
+./rerun.sh nvda                    # second-instrument robustness pair
+./rerun.sh probes                  # every probe behind report §6
+./rerun.sh decision <report.md> 3  # reproducible decision on a frozen report
+./rerun.sh table                   # rebuild results.md / results.csv
+./rerun.sh report                  # rebuild REPORT.docx + REPORT.pdf
+```
+
+Under the hood, from scratch:
+
 ```bash
 python3 -m venv .venv
 ./.venv/bin/python -m pip install -e ./TradingAgents      # upstream, unmodified
