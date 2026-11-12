@@ -15,7 +15,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
 
-INLINE = re.compile(r"(\*\*.+?\*\*|`[^`]+`)")
+INLINE = re.compile(r"(\*\*.+?\*\*|\*[^*\n]+?\*|`[^`]+`)")
 
 
 def add_runs(par, text: str) -> None:
@@ -25,6 +25,9 @@ def add_runs(par, text: str) -> None:
         if chunk.startswith("**") and chunk.endswith("**"):
             run = par.add_run(chunk[2:-2])
             run.bold = True
+        elif chunk.startswith("*") and chunk.endswith("*") and len(chunk) > 2:
+            run = par.add_run(chunk[1:-1])
+            run.italic = True
         elif chunk.startswith("`") and chunk.endswith("`"):
             run = par.add_run(chunk[1:-1])
             run.font.name = "Menlo"
@@ -61,6 +64,9 @@ def main() -> int:
     style = doc.styles["Normal"]
     style.font.name = "Calibri"
     style.font.size = Pt(10.5)
+    style.paragraph_format.line_spacing = 1.08
+    style.paragraph_format.space_before = Pt(0)
+    style.paragraph_format.space_after = Pt(4)
     for section in doc.sections:
         section.top_margin = section.bottom_margin = Inches(0.8)
         section.left_margin = section.right_margin = Inches(0.85)
@@ -108,7 +114,10 @@ def main() -> int:
                 run.font.size = Pt(19)
                 par.paragraph_format.space_after = Pt(6)
             else:
-                doc.add_heading(text, level=min(level, 3))
+                par = doc.add_heading("", level=min(level, 3))
+                add_runs(par, text)
+                for run in par.runs:
+                    run.bold = True
             i += 1
             continue
 
@@ -127,6 +136,9 @@ def main() -> int:
 
         if re.match(r"^[-*] ", stripped):
             par = doc.add_paragraph(style="List Bullet")
+            par.paragraph_format.left_indent = Inches(0.3)
+            par.paragraph_format.first_line_indent = Inches(-0.2)
+            par.paragraph_format.space_after = Pt(3)
             add_runs(par, stripped[2:])
             i += 1
             continue
@@ -141,10 +153,19 @@ def main() -> int:
             i += 1
             continue
 
-        par = doc.add_paragraph()
-        par.paragraph_format.space_after = Pt(4)
-        add_runs(par, stripped)
+        # soft wrap: consecutive plain lines form one paragraph
+        buf = [stripped]
         i += 1
+        while i < len(lines):
+            nxt = lines[i].strip()
+            if (not nxt or nxt.startswith(("#", "|", ">", "```", "- ", "* "))
+                    or re.match(r"^\d+\. ", nxt) or nxt == "---"):
+                break
+            buf.append(nxt)
+            i += 1
+        par = doc.add_paragraph()
+        par.paragraph_format.space_after = Pt(5)
+        add_runs(par, " ".join(buf))
 
     doc.save(dst)
     print(f"wrote {dst}")
