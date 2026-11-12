@@ -112,6 +112,10 @@ def main() -> int:
         r"volume[- ]weighted|moving average)", re.I)
     for m in re.finditer(r"([\d]{3}\.\d+)\s*\((?:on\s+)?(" + DATE_ANY + r")[^)]*\)", market):
         price = float(m.group(1))
+        if len(re.findall(r"\d{2}-\d{2}", m.group(0))) > 1:
+            # "220.653 (08-26 close to 08-27 low)" -> the price is the 08-27 low,
+            # not the first date inside the parenthesis. Ambiguous, so skip.
+            continue
         line_start = market.rfind("\n", 0, m.start()) + 1
         prefix = market[line_start:m.start()]
         if prefix.strip().startswith("|") or IND_WORDS.search(prefix):
