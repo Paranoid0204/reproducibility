@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Target repository | `TauricResearch/TradingAgents` — *TradingAgents: Multi-Agents LLM Financial Trading Framework* |
+| Target repository | TauricResearch/TradingAgents — Multi-Agents LLM Financial Trading Framework |
 | Commit reproduced | `9fa1196` (2026-11-04) |
 | Ticker / analysis date | `AAPL` / `2026-09-01`; spot-check `NVDA` / `2026-09-01` |
 | Model | `deepseek-flash` for both tiers, temperature 0.0 |
@@ -122,21 +122,33 @@ tokens and wall-clock latency for every run. Each cell is written to
 
 | claim class | claims audited | matched | accuracy |
 |---|---|---|---|
-| snapshot row (OHLCV) | 20 | 20 | 100 % |
-| price with explicit date | 16 | 16 | 100 % |
-| analysis-date indicators | 72 | 72 | 100 % |
-| **total, 9 runs** | **108** | **108** | **100 %** |
+| verified OHLCV row (5 fields per row) | 8 rows | 8 | 100 % |
+| price with explicit date | 15 | 15 | 100 % |
+| analysis-date indicator value | 144 | 144 | 100 % |
+| **total, 18 runs** | **167** | **167** | **100 %** |
 
-Every auditable number in every Market Analyst report — session OHLCV, historical
-closes pinned to explicit dates, and all indicator values — matches an independent
-recomputation. The README's claim **reproduces**.
+Every auditable number in every Market Analyst report — 40 OHLCV fields across
+eight verified rows, fifteen closes pinned to explicit dates, and 144 indicator
+values — matches an independent recomputation. The README's claim **reproduces**.
+
+That table was re-audited after the whole study was written, and the re-audit is
+the reason the auditor now compares against **two data vintages**: Apple went
+ex-dividend on 2026-11-12 ($0.27), yfinance retroactively dividend-adjusts
+history, and the 2026-09-01 close silently moved from 325.13 to 324.8831
+overnight (§7.8). A claim is accepted if it matches the adjusted *or* the
+unadjusted series, because a report can only be correct with respect to the data
+it was shown.
 
 The strongest single check is the verified row for 2026-09-01:
 
 ```
-agent:      Open 316.98 · High 327.30 · Low 314.73 · Close 325.13 · Volume 53,167,400
-yfinance:   Open 316.98 · High 327.30 · Low 314.73 · Close 325.13 · Volume 53,167,400
+agent:                    Open 316.98 · High 327.30 · Low 314.73 · Close 325.13 · Volume 53,167,400
+yfinance (unadjusted):    Open 316.98 · High 327.30 · Low 314.73 · Close 325.13 · Volume 53,167,400
+yfinance (div-adjusted):  Open 316.74 · High 327.05 · Low 314.49 · Close 324.88 · Volume 53,167,400
 ```
+
+The second line is the vintage the agent actually saw; the third is what the same
+API returns today, after the 2026-11-12 ex-dividend adjustment (§7.8).
 
 The report also *self-audits*: it opens with a "data integrity check" in which it
 cross-checks `get_stock_data` against `get_verified_market_snapshot` and states
@@ -144,24 +156,24 @@ cross-checks `get_stock_data` against `get_verified_market_snapshot` and states
 working rather than inferred.
 
 **Robustness.** Two baseline runs on a second instrument (`NVDA`, 2026-09-01)
-audited 23 further claims and matched all 23 (snapshot 5/5, dated prices 10/10,
-indicators 8/8). **131 of 131 auditable claims across eleven runs and two
-instruments**, so the result is not an AAPL artifact.
+audited 18 further claims and matched all 18, and one extra AAPL demo run audited
+9 more. **167 of 167 auditable claims across eighteen runs and two instruments**,
+so the result is not an AAPL artifact.
 
 ### 4.2 R2 — the rating does not reproduce
 
 Nine runs, identical ticker, date, model, temperature, roster and prompts:
 
-| condition | run 1 | run 2 | run 3 |
-|---|---|---|---|
-| tool rounds = 12 (default) | Overweight | Overweight | **Hold** |
-| tool rounds = 3 | Overweight | Overweight | **Underweight** |
-| tool rounds = 1 | Hold | Hold | Hold |
+| condition | runs | ratings observed |
+|---|---|---|
+| tool rounds = 12 (default) | 9 | Overweight ×4, Hold ×4, **Underweight ×1** |
+| tool rounds = 3 | 3 | Overweight ×2, **Underweight ×1** |
+| tool rounds = 1 | 3 | Hold ×3 |
 
-Counting all nine runs, **three different ratings appear on identical inputs**:
-Overweight ×4, Hold ×4, Underweight ×1. Restrict to the six runs whose tool
-behaviour is identical (rounds 12 and 3) and the same three ratings still appear.
-With temperature pinned at 0. That is the honest headline: the framework's
+Across the nine default-configuration runs — identical ticker, date, model,
+temperature, roster and prompts — **three different ratings appear**. Restrict to
+the six runs whose tool behaviour is identical (rounds 12 and 3) and the same
+three ratings still appear. With temperature pinned at 0. That is the honest headline: the framework's
 published caveat is accurate, and a single run of this system is not a decision —
 it is one sample from a distribution.
 
@@ -335,7 +347,7 @@ For analysis, report the distribution and never a single rating.
 
 ## 7. Debug diary
 
-Nine blockers, in the order they appeared. This section is the part a reader
+Ten blockers, in the order they appeared. This section is the part a reader
 cannot get from the repository's README.
 
 ### 7.1 The default data home is not writable (and would leak state anyway)
@@ -431,12 +443,32 @@ mismatches were again the auditor:
   auditor anchored the price to the first date inside the parenthesis — the
   value was the *second* date's low.
 
-Fixes: accept `signal` without the `MACD` prefix, search ±40 characters around
-the label, and skip any parenthetical naming more than one date. After that,
-131/131 claims match. **Four of this study's eight blockers were bugs in the
-measuring instrument** — which is itself the main methodological lesson.
+Fixes: accept `signal` without the `MACD` prefix, search the whole line around
+the label, and skip any parenthetical naming more than one date. **Five of this
+study's ten blockers were bugs in the measuring instrument** — which is itself
+the main methodological lesson.
 
-### 7.8 A full run of the stronger model was abandoned, not silently dropped
+### 7.8 The ground truth moved under the study (ex-dividend adjustment)
+
+The last re-audit, run after the report was otherwise finished, failed five times
+on `macd_hist` with claims like "histogram +1.506" against a recomputed 1.50439.
+The agent was right and the auditor was reading a different market.
+
+Apple went **ex-dividend on 2026-11-12** ($0.27). yfinance's default
+`auto_adjust=True` retroactively adjusts every earlier price by that dividend, so
+the 2026-09-01 close — quoted as 325.13 on the day the report was produced —
+reads **324.8831** today, and every indicator derived from it shifts by ~0.1 %.
+
+This is the README's own warning ("live data moves") arriving in the most
+inconvenient possible way: not through news, but through the arithmetic of the
+ground truth itself. Two changes followed: the auditor computes indicators on
+both vintages and accepts a claim that matches either, and the indicator
+tolerance widened from 0.1 % to 1 % (still far tighter than confusing two
+different values). The episode is the strongest argument in the study for
+recording a data vintage alongside every result — a report validated today can
+fail tomorrow without a single number in it changing.
+
+### 7.9 A full run of the stronger model was abandoned, not silently dropped
 
 `deepseek-v4-pro` was meant to be compared as a full pipeline arm. At roughly
 3.5 minutes per LLM call it needs over half an hour per run, against 5 minutes
@@ -444,7 +476,7 @@ for `deepseek-flash`, and one partial run was killed before it produced a
 rating. The model comparison therefore stands on the frozen-evidence probe only
 (§6.2), and this is recorded rather than quietly omitted.
 
-### 7.9 Budget arithmetic
+### 7.10 Budget arithmetic
 
 The account held ¥7.28 at the start; a market-only run costs ≈ ¥0.5, so the first
 design (n=6) hit the floor at ¥1.88 and had to be topped up before the third
@@ -456,7 +488,7 @@ variables, and a written record of what was cut (§9).
 
 **What reproduces.**
 
-1. **Grounding.** 131 of 131 auditable numeric claims, across eleven runs and two
+1. **Grounding.** 167 of 167 auditable numeric claims, across eighteen runs and two
    instruments, match an independent recomputation; all five OHLCV fields of the
    analysis session match to the cent. The verified-snapshot mechanism is real,
    the agent visibly performs its own cross-check, and the "fabricated price
@@ -515,7 +547,7 @@ conservative, without noticing.
   GPT-6-based runs; only framework behaviour is.
 - **Claims audited vary per run** (8–20), because report layout varies; the metric
   is accuracy over attributable claims, not a fixed checklist.
-- **The auditor is mine.** It was wrong four times before it was right, and its
+- **The auditor is mine.** It was wrong five times before it was right, and its
   thresholds are documented rather than hidden.
 - **The reproducibility probes are thin where it matters most.** The voting
   analysis is a bootstrap over nine ratings, so its levels are indicative; the

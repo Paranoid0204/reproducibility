@@ -73,7 +73,7 @@ grep -n "max_tool_rounds\|temperature\|memory_log_path" run_experiment.py | head
 cat runs/main/results.md
 ```
 
-> 九次运行、两只股票，一共 131 条可审计数字，131 条全对。
+> 十八次运行、两只股票，一共 167 条可审计数字，167 条全对。
 
 **然后放最关键的一段**（终端敲，或用 PDF 展示）：
 
@@ -86,7 +86,7 @@ grep -m1 "verified market snapshot" runs/demo/AAPL_2026-09-01_baseline_r99.repor
 > 它还会在开头主动写一句「我用两个工具交叉核对，没有发现不一致」——这个动作我在日志里看到了。
 
 ```
-131 auditable claims, 131 matches. The agent's verified row and Yahoo's row are
+167 auditable claims, 167 matches. The agent's verified row and Yahoo's row are
 identical to the cent — open, high, low, close and volume.
 ```
 
@@ -162,7 +162,7 @@ sampler. Freeze the evidence: 95%. Use a fixed rule: 100%. Voting: no.
 
 **只讲两个坑**（别贪多）：
 
-> 一，我第一版校验工具说准确率只有 21%，查下来是**工具错了**不是 AI 错了：它把「前一天的收盘价」算到了今天头上。后来发现九个坑里有四个是我自己的工具有 bug。
+> 一，我第一版校验工具说准确率只有 21%，查下来是**工具错了**不是 AI 错了：它把「前一天的收盘价」算到了今天头上。后来发现十个坑里有五个是我自己的工具有 bug。
 > 二，我把运行输出接到了 tail，结果五分钟的运行看起来像卡死，被我误杀了两次。
 
 > 复现工作里，**出错的通常是你的量具，不是被测对象**。

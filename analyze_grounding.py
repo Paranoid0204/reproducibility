@@ -34,8 +34,21 @@ FULL_DATE = r"(20\d{2})-(\d{2})-(\d{2})"
 DATE_ANY = r"(?:(20\d{2})-)?(\d{2})-(\d{2})"
 
 
-def load_ohlcv(ticker: str, start: str, end: str) -> pd.DataFrame:
-    hist = yf.Ticker(ticker).history(start=start, end=end)
+PRICE_CTX = re.compile(
+    r"(\$|\bclos\w*|\bopen\w*|\bhigh\w*|\blow\w*|\bprice\w*|\btrad\w*|\bbid\b|\bask\b)",
+    re.I)
+
+
+def load_ohlcv(ticker: str, start: str, end: str, adjust: bool = True) -> pd.DataFrame:
+    """Daily OHLCV.
+
+    ``adjust`` matters more than it looks: yfinance retroactively dividend-adjusts
+    history, so an ex-dividend date silently rewrites every earlier close. AAPL
+    went ex-dividend on 2026-11-12 ($0.27) and the 2026-09-01 close moved from
+    325.13 to 324.8831 overnight. Reports are audited against both vintages,
+    because a report can only be correct with respect to the data it was shown.
+    """
+    hist = yf.Ticker(ticker).history(start=start, end=end, auto_adjust=adjust)
     hist.index = hist.index.tz_localize(None)
     return hist[["Open", "High", "Low", "Close", "Volume"]]
 
@@ -79,8 +92,11 @@ def main() -> int:
 
     text = Path(args.report).read_text()
     market = text.split("## market_report")[-1] if "## market_report" in text else text
-    hist = load_ohlcv(args.ticker, args.start, args.end)
-    rows = {i.strftime("%Y-%m-%d"): i for i in hist.index}
+    frames = {True: load_ohlcv(args.ticker, args.start, args.end, True),
+              False: load_ohlcv(args.ticker, args.start, args.end, False)}
+    hist = frames[True]
+    vintages = {k: {i.strftime("%Y-%m-%d"): i for i in v.index} for k, v in frames.items()}
+    rows = vintages[True]
     default_year = args.year or int(sorted(rows)[-1][:4])
 
     claims: list[dict] = []
@@ -98,13 +114,16 @@ def main() -> int:
         date = "-".join(dates[-1]) if dates else sorted(rows)[-1]
         if date not in rows:
             continue
-        row = hist.loc[rows[date]]
-        for field, value in zip(("Open", "High", "Low", "Close", "Volume"), m.groups()):
-            claimed = float(value.replace(",", ""))
-            actual = float(row[field])
-            claims.append({"kind": "snapshot", "date": date, "field": field.lower(),
-                           "claimed": claimed, "actual": round(actual, 3),
-                           "ok": near(claimed, actual, 1e-3)})
+        hits = []
+        for frame in frames.values():
+            row = frame.loc[vintages[True].get(date, vintages[False].get(date))]
+            hits.append(all(near(float(v.replace(",", "")), float(row[f]), 1e-3)
+                            for f, v in zip(("Open", "High", "Low", "Close", "Volume"), m.groups())))
+        claims.append({"kind": "snapshot", "date": date,
+                       "claimed": [float(v.replace(",", "")) for v in m.groups()],
+                       "actual": [round(float(frames[True].loc[rows[date]][c]), 3)
+                                  for c in ("Open", "High", "Low", "Close", "Volume")],
+                       "ok": any(hits)})
 
     # ---- 2. price followed by a parenthesised date
     IND_WORDS = re.compile(
@@ -116,6 +135,12 @@ def main() -> int:
             # "220.653 (08-26 close to 08-27 low)" -> the price is the 08-27 low,
             # not the first date inside the parenthesis. Ambiguous, so skip.
             continue
+        # Only a number the text actually labels as a price is audited. Series
+        # like "VWMA turned up: 318.83 (08-10) -> 307.62 (08-19)" carry indicator
+        # values next to dates and were the auditor's fifth false positive.
+        window = market[max(0, m.start() - 40):m.start()]
+        if not PRICE_CTX.search(window):
+            continue
         line_start = market.rfind("\n", 0, m.start()) + 1
         prefix = market[line_start:m.start()]
         if prefix.strip().startswith("|") or IND_WORDS.search(prefix):
@@ -126,11 +151,14 @@ def main() -> int:
         date = resolve_date(re.match(r"(?:(20\d{2})-)?(\d{2})-(\d{2})", dm.group(0)), default_year)
         if date not in rows:
             continue
+        ok = False
+        for frame in frames.values():
+            row = frame.loc[vintages[True].get(date, vintages[False].get(date))]
+            ok = ok or any(near(price, float(row[c]), 2e-3) for c in ("Open", "High", "Low", "Close"))
         row = hist.loc[rows[date]]
-        ohlc = [float(row[c]) for c in ("Open", "High", "Low", "Close")]
         claims.append({"kind": "price_date", "date": date, "claimed": price,
-                       "actual": [round(v, 3) for v in ohlc],
-                       "ok": any(near(price, v, 2e-3) for v in ohlc)})
+                       "actual": [round(float(row[c]), 3) for c in ("Open", "High", "Low", "Close")],
+                       "ok": ok})
 
     # ---- 3. date followed by a close label (diagnostic only: a sentence may
     # legitimately mean "the prior close", so this is excluded from the headline
@@ -151,7 +179,8 @@ def main() -> int:
     # For each indicator, accept it as reproduced if the report states the
     # recomputed analysis-date value (within printed precision) anywhere it
     # names that indicator. Historical mentions on other dates are ignored.
-    ind = indicators(hist)
+    ind_sets = {k: indicators(v) for k, v in frames.items()}
+    ind = ind_sets[True]
     label_map = {"ema10": r"10[- ]?EMA|EMA\s*\(?10", "sma50": r"50[- ]?SMA|SMA\s*\(?50",
                  "sma200": r"200[- ]?SMA|SMA\s*\(?200", "rsi": r"\bRSI\b",
                  "macd": r"\bMACD\b", "macd_signal": r"(?:MACD\s*)?signal\b(?!\s*(?:line|cross|crossover|line-up))",
@@ -163,17 +192,22 @@ def main() -> int:
             continue
         hit = False
         for m in re.finditer("(?:" + pattern + ")", market, re.I):
-            # the value may sit either side of the label: "signal −0.238" or a
-            # table row "`macds` | −0.2381 | ...". 40 chars each way is enough
-            # to reach the neighbouring cell but not a neighbouring row.
-            window = market[max(0, m.start() - 40):m.end() + 80]
+            # the value may sit either side of the label, and a series can put it
+            # far to the right ("histogram: 0.154 -> 0.416 -> ... -> 1.506"), so
+            # the unit of comparison is the enclosing line, not a character window
+            line_start = market.rfind("\n", 0, m.start()) + 1
+            line_end = market.find("\n", m.end())
+            window = market[line_start:line_end if line_end != -1 else len(market)]
             for token in VALUE_RE.findall(window):
                 try:
                     claimed = float(token.replace("−", "-"))
                 except ValueError:
                     continue
-                actual = ind[key]
-                if actual and abs(claimed - actual) / abs(actual) <= 1e-3:
+                # 1 % band, not 0.1 %: reports round to 3-4 significant digits,
+                # and a dividend re-adjustment moves indicator values by ~0.1 %
+                # overnight. Still far tighter than quoting a different value.
+                if any(a[key] and abs(claimed - a[key]) / abs(a[key]) <= 1e-2
+                       for a in ind_sets.values() if key in a):
                     hit = True
                     break
             if hit:

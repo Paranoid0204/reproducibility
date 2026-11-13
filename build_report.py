@@ -64,9 +64,9 @@ def main() -> int:
     style = doc.styles["Normal"]
     style.font.name = "Calibri"
     style.font.size = Pt(10.5)
-    style.paragraph_format.line_spacing = 1.08
+    style.paragraph_format.line_spacing = 1.0
     style.paragraph_format.space_before = Pt(0)
-    style.paragraph_format.space_after = Pt(4)
+    style.paragraph_format.space_after = Pt(3)
     for section in doc.sections:
         section.top_margin = section.bottom_margin = Inches(0.8)
         section.left_margin = section.right_margin = Inches(0.85)
@@ -174,7 +174,7 @@ def main() -> int:
             buf.append(nxt)
             i += 1
         par = doc.add_paragraph()
-        par.paragraph_format.space_after = Pt(5)
+        par.paragraph_format.space_after = Pt(4)
         add_runs(par, " ".join(buf))
 
     doc.save(dst)

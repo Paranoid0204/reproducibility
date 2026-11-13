@@ -1,3 +1,3 @@
 ticker,date,condition,rep,decision,llm_calls,tool_calls,stock_data,indicators,snapshot,tokens_in,tokens_out,latency_s,grounding_claims,grounding_matched,grounding_accuracy,report_chars
-NVDA,2026-09-01,baseline,1,Hold,11,10,1,8,1,119805,53592,333.0,15,15,1.0,36747
+NVDA,2026-09-01,baseline,1,Hold,11,10,1,8,1,119805,53592,333.0,10,10,1.0,36747
 NVDA,2026-09-01,baseline,2,Hold,12,10,1,8,1,100910,50481,284.8,8,8,1.0,31598

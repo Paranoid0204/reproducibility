@@ -1,6 +1,6 @@
 | condition | rep | decision | llm | tools | snap | tok_in | tok_out | latency_s | grounding |
 |---|---|---|---|---|---|---|---|---|---|
-| baseline | 1 | Hold | 11 | 10 | 1 | 119805 | 53592 | 333 | 15/15 |
+| baseline | 1 | Hold | 11 | 10 | 1 | 119805 | 53592 | 333 | 10/10 |
 | baseline | 2 | Hold | 12 | 10 | 1 | 100910 | 50481 | 285 | 8/8 |
 
 | condition | n | decisions | tool_calls | tokens_in | tokens_out | latency_s | grounding |
